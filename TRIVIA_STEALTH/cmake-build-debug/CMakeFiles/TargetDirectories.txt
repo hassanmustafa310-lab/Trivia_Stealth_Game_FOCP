@@ -1,0 +1,3 @@
+C:/Users/hassa/CLionProjects/TRIVIA_STEALTH/cmake-build-debug/CMakeFiles/TRIVIA_STEALTH.dir
+C:/Users/hassa/CLionProjects/TRIVIA_STEALTH/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/hassa/CLionProjects/TRIVIA_STEALTH/cmake-build-debug/CMakeFiles/rebuild_cache.dir
