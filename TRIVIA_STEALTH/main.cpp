@@ -6,8 +6,9 @@
 #include <cmath>
 #include <iostream>
 #include <algorithm>
+#include <random>
 
-using namespace std; // Namespace added here
+using namespace std;
 
 //  Constants
 const int TILE_SIZE = 60;
@@ -15,8 +16,8 @@ const int COLS = 20;
 const int ROWS = 15;
 
 const int UI_HEIGHT = 80;
-const int SCREEN_WIDTH = COLS * TILE_SIZE;          // 1000 px
-const int SCREEN_HEIGHT = (ROWS * TILE_SIZE) + UI_HEIGHT; // 830 px
+const int SCREEN_WIDTH = COLS * TILE_SIZE;          // 1200 px
+const int SCREEN_HEIGHT = (ROWS * TILE_SIZE) + UI_HEIGHT; // 980 px
 
 // Colors
 const Color BG_COLOR = { 20, 20, 30, 255 };
@@ -26,7 +27,7 @@ const Color COL_PLAYER = { 0, 228, 48, 255 };
 const Color COL_ENEMY_SLOW = { 230, 41, 55, 255 };
 const Color COL_ENEMY_FAST = { 255, 161, 0, 255 };
 const Color COL_DIAMOND = { 0, 240, 255, 255 };
-const Color COL_NUGGET = { 255, 215, 0, 255 };
+const Color COL_NUGGET = { 218, 165, 32, 255 }; // Goldenrod
 const Color COL_INVISIBLE = { 100, 255, 218, 100 };
 const Color COL_UI_PANEL = { 15, 15, 20, 255 };
 
@@ -42,7 +43,7 @@ struct GridPos {
 struct Question {
     string text;
     string options[3];
-    int correctIndex;
+    int correctIndex; // 0, 1, or 2
 };
 
 struct Player {
@@ -68,6 +69,10 @@ vector<GridPos> diamonds;
 GameState currentState;
 Question currentQuestion;
 
+// Random engine setup
+std::mt19937 rng;
+vector<int> questionIndices; // To track which questions have been used
+
 // --- Level Design ---
 const string LEVEL_LAYOUT[15] = {
     "11111111111111111111",
@@ -87,17 +92,63 @@ const string LEVEL_LAYOUT[15] = {
     "11111111111111111111"
 };
 
-// Trivia Database
+// --- QUESTION BANK ---
 vector<Question> questionBank = {
-    {"Capital of France?", {"London", "Berlin", "Paris"}, 2},
-    {"Language of this game?", {"Python", "C++", "Java"}, 1},
-    {"2 + 2 * 2?", {"6", "8", "4"}, 0},
-    {"Red Planet?", {"Venus", "Mars", "Jupiter"}, 1},
-    {"Creator of C++?", {"Stroustrup", "Ritchie", "Torvalds"}, 0},
-    {"Boiling point water?", {"100 C", "90 C", "120 C"}, 0},
-    {"CPU stands for?", {"Computer", "Processor", "Central Proc. Unit"}, 2},
-    {"Bits in a byte?", {"4", "8", "16"}, 1}
+    //SPECIAL QUESTION
+    {"Who is the best Computer programing Professor?", {"Jaudat Mamoon", "David Malan", "Andrew Ng"}, 0},
+
+    // Fun General Knowledge
+    {"Which planet has the most rings?", {"Saturn", "Jupiter", "Mars"}, 0},
+    {"What is the largest organ on the human body?", {"Liver", "Skin", "Heart"}, 1},
+    {"Who painted the Mona Lisa?", {"Van Gogh", "Picasso", "Da Vinci"}, 2},
+    {"Which country gave the Statue of Liberty to the USA?", {"France", "England", "Spain"}, 0},
+    {"What color is a polar bear's skin?", {"White", "Pink", "Black"}, 2},
+    {"In 'The Matrix', which pill does Neo take?", {"Red", "Blue", "Green"}, 0},
+    {"A group of Crows is called a...", {"Pack", "Murder", "School"}, 1},
+    {"Which is the only mammal that can fly?", {"Bat", "Flying Squirrel", "Ostrich"}, 0},
 };
+
+// --- Helper: Shuffle Questions & Rig the Deck ---
+void ShuffleQuestions() {
+    questionIndices.clear();
+    int specialIndex = -1;
+
+    // 1. Fill list and find your special question index
+    for(size_t i = 0; i < questionBank.size(); ++i) {
+        questionIndices.push_back(i);
+        // Identify your question by looking for "Jaudat Mamoon" in the options
+        if (questionBank[i].options[0].find("Jaudat Mamoon") != string::npos) {
+            specialIndex = i;
+        }
+    }
+
+    // 2. Shuffle everything normally
+    std::shuffle(questionIndices.begin(), questionIndices.end(), rng);
+
+    // 3. FORCE the special question to be in the "Active Zone"
+    // Since we pop from the back of the vector, the "next 3 questions" are the last 3 in the list.
+    if (specialIndex != -1) {
+        // Find where the shuffle put it
+        int currentPos = -1;
+        for(size_t i=0; i<questionIndices.size(); i++) {
+            if(questionIndices[i] == specialIndex) {
+                currentPos = i;
+                break;
+            }
+        }
+
+        // We have 3 nuggets, so we need it to be one of the last 3 items
+        int poolSize = 3;
+        if (questionIndices.size() < 3) poolSize = questionIndices.size();
+
+        // Pick a random spot in the "top 3" (which is actually the bottom 3 of the vector)
+        int randomOffset = rand() % poolSize; // 0, 1, or 2
+        int targetPos = questionIndices.size() - 1 - randomOffset;
+
+        // Swap it into place
+        std::swap(questionIndices[currentPos], questionIndices[targetPos]);
+    }
+}
 
 // --- Initialization ---
 void LoadLevel() {
@@ -105,6 +156,9 @@ void LoadLevel() {
     nuggets.clear();
     diamonds.clear();
     enemies.clear();
+
+    // Reshuffle (and rig) questions when level loads
+    ShuffleQuestions();
 
     for (int y = 0; y < ROWS; y++) {
         for (int x = 0; x < COLS; x++) {
@@ -131,9 +185,9 @@ void LoadLevel() {
         }
     }
 
-    // Spawn Nuggets
+    // Spawn Nuggets (Quiz triggers)
     int nuggetCount = 0;
-    while (nuggetCount < 2) {
+    while (nuggetCount < 3) {
         int nx = rand() % COLS;
         int ny = rand() % ROWS;
         if (gameGrid[ny][nx] == TILE_EMPTY && !(nx == player.pos.x && ny == player.pos.y)) {
@@ -194,7 +248,7 @@ void UpdatePlayer() {
     // Smoother Movement Settings
     float moveDelay = 0.12f;
     if (IsKeyDown(KEY_LEFT_SHIFT) && player.stamina > 0) {
-        moveDelay = 0.06f;
+        moveDelay = 0.06f; // speed of the player
         player.stamina -= 60.0f * GetFrameTime();
     }
 
@@ -245,7 +299,18 @@ void UpdatePlayer() {
 
     for (size_t i = 0; i < nuggets.size(); i++) {
         if (player.pos.x == nuggets[i].x && player.pos.y == nuggets[i].y) {
-            currentQuestion = questionBank[rand() % questionBank.size()];
+
+            // --- RANDOM LOGIC ---
+            // If we ran out of unique questions, reshuffle
+            if (questionIndices.empty()) ShuffleQuestions();
+
+            // Get the next unique index
+            int idx = questionIndices.back();
+            questionIndices.pop_back();
+
+            currentQuestion = questionBank[idx];
+            // ------------------------
+
             currentState = QUIZ;
             nuggets.erase(nuggets.begin() + i);
             break;
@@ -266,7 +331,8 @@ void UpdateEnemies() {
             GridPos moves[4] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
 
             vector<int> indices = {0, 1, 2, 3};
-            if (player.invisibleTimer > 0) random_shuffle(indices.begin(), indices.end());
+            // Use std::shuffle for better enemy randomness when invisible
+            if (player.invisibleTimer > 0) std::shuffle(indices.begin(), indices.end(), rng);
 
             bool moved = false;
 
@@ -436,21 +502,19 @@ void DrawUI() {
         int fontSize = 20;
         int xPos = 100;
 
-        // Custom bullet points
         auto DrawTip = [&](int index, const char* text) {
             DrawRectangle(xPos - 20, startY + (index*spacing) + 5, 10, 10, COL_DIAMOND);
             DrawText(text, xPos, startY + (index*spacing), fontSize, WHITE);
         };
 
         DrawTip(0, "Use [SHIFT] to sprint out of sticky situations.");
-        DrawTip(1, "Answer trivia questions correctly to entire ghost mode for 4 seconds.");
+        DrawTip(1, "Answer trivia questions correctly to enter ghost mode for 4 seconds.");
         DrawTip(2, "Increase distance from enemies to hide.");
         DrawTip(3, "Don't get cornered in dead ends.");
         DrawTip(4, "Enemies track you within a specific radius.");
 
         DrawText("PRESS [H] OR [ENTER] TO RETURN", SCREEN_WIDTH/2 - 150, SCREEN_HEIGHT - 100, 20, LIGHTGRAY);
     }
-    // ... (Rest of UI states: QUIZ, PLAYING, etc. - kept simple overlay)
     else {
         // Draw the top bar background for game
         if (currentState == PLAYING || currentState == FROZEN) {
@@ -513,7 +577,13 @@ void DrawUI() {
 
 // --- Main Loop ---
 int main() {
+    // Seed standard rand() for map generation
     srand(static_cast<unsigned int>(time(0)));
+
+    // Seed modern RNG for questions
+    std::random_device rd;
+    rng.seed(rd());
+
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Maze Runner: Diamond Heist");
     SetTargetFPS(60);
 
