@@ -60,7 +60,7 @@ struct Enemy {
     float speed;
 };
 
-// --- Global Data ---
+//  Global Data 
 vector<vector<int>> gameGrid;
 Player player;
 vector<Enemy> enemies;
@@ -73,7 +73,7 @@ Question currentQuestion;
 std::mt19937 rng;
 vector<int> questionIndices; // To track which questions have been used
 
-// --- Level Design ---
+//  Level Design 
 const string LEVEL_LAYOUT[15] = {
     "11111111111111111111",
     "19000001000000010001",
@@ -92,7 +92,7 @@ const string LEVEL_LAYOUT[15] = {
     "11111111111111111111"
 };
 
-// --- QUESTION BANK ---
+//  QUESTION BANK 
 vector<Question> questionBank = {
     //SPECIAL QUESTION
     {"Who is the best Computer programing Professor?", {"Jaudat Mamoon", "David Malan", "Andrew Ng"}, 0},
@@ -108,7 +108,7 @@ vector<Question> questionBank = {
     {"Which is the only mammal that can fly?", {"Bat", "Flying Squirrel", "Ostrich"}, 0},
 };
 
-// --- Helper: Shuffle Questions & Rig the Deck ---
+//  Helper: Shuffle Questions & Rig the Deck 
 void ShuffleQuestions() {
     questionIndices.clear();
     int specialIndex = -1;
@@ -150,7 +150,7 @@ void ShuffleQuestions() {
     }
 }
 
-// --- Initialization ---
+//  Initialization 
 void LoadLevel() {
     gameGrid.assign(ROWS, vector<int>(COLS, TILE_WALL));
     nuggets.clear();
@@ -223,7 +223,7 @@ void ResetGame() {
     LoadLevel();
 }
 
-// --- Logic ---
+// . Logic .
 
 bool IsValidMove(int x, int y) {
     if (x < 0 || x >= COLS || y < 0 || y >= ROWS) return false;
@@ -300,7 +300,7 @@ void UpdatePlayer() {
     for (size_t i = 0; i < nuggets.size(); i++) {
         if (player.pos.x == nuggets[i].x && player.pos.y == nuggets[i].y) {
 
-            // --- RANDOM LOGIC ---
+            // . RANDOM LOGIC .
             // If we ran out of unique questions, reshuffle
             if (questionIndices.empty()) ShuffleQuestions();
 
@@ -309,7 +309,7 @@ void UpdatePlayer() {
             questionIndices.pop_back();
 
             currentQuestion = questionBank[idx];
-            // ------------------------
+            // ........
 
             currentState = QUIZ;
             nuggets.erase(nuggets.begin() + i);
@@ -363,7 +363,7 @@ void UpdateEnemies() {
     }
 }
 
-// --- Drawing Functions ---
+// . Drawing Functions .
 
 void DrawGameMap() {
     DrawRectangle(0, UI_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT - UI_HEIGHT, BG_COLOR);
@@ -446,14 +446,14 @@ void DrawUI() {
     float time = GetTime(); // For animations
 
     if (currentState == MENU) {
-        // --- 1. Background with Gradient ---
+        // . 1. Background with Gradient .
         DrawRectangleGradientV(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, BG_COLOR, {10, 10, 15, 255});
 
         // Background Deco (Spinning large diamond)
         DrawPolyLines({SCREEN_WIDTH/2.0f, SCREEN_HEIGHT/2.0f + 50}, 4, 300, time * 10.0f, Fade(COL_DIAMOND, 0.05f));
         DrawPolyLines({SCREEN_WIDTH/2.0f, SCREEN_HEIGHT/2.0f + 50}, 4, 280, time * -15.0f, Fade(COL_DIAMOND, 0.05f));
 
-        // --- 2. Title with Shadow ---
+        // . 2. Title with Shadow .
         const char* title1 = "MAZE RUNNER";
         const char* title2 = "DIAMOND HEIST";
         int t1Width = MeasureText(title1, 40);
@@ -464,7 +464,7 @@ void DrawUI() {
         DrawText(title2, SCREEN_WIDTH/2 - t2Width/2 + 4, 164, 50, BLACK);
         DrawText(title2, SCREEN_WIDTH/2 - t2Width/2, 160, 50, COL_DIAMOND);
 
-        // --- 3. Info Panel ---
+        // . 3. Info Panel .
         Rectangle panel = { SCREEN_WIDTH/2.0f - 220, 260, 440, 240 };
         DrawRectangleRounded(panel, 0.1f, 10, Fade(COL_UI_PANEL, 0.8f));
         DrawRectangleRoundedLines(panel, 0.1f, 10, Fade(COL_DIAMOND, 0.3f));
@@ -477,7 +477,7 @@ void DrawUI() {
         DrawText("- Use SHIFT to Sprint (Costs Stamina)", panel.x + 40, panel.y + 150, 20, WHITE);
         DrawText("- Avoid the Guards!", panel.x + 40, panel.y + 190, 20, COL_ENEMY_FAST);
 
-        // --- 4. Start Prompt (Pulsing) ---
+        // . 4. Start Prompt (Pulsing) .
         float pulse = (sin(time * 5.0f) + 1.0f) / 2.0f; // 0 to 1
         Color startColor = Fade(WHITE, 0.5f + (pulse * 0.5f));
         const char* startText = "PRESS [ENTER] TO START";
@@ -485,7 +485,7 @@ void DrawUI() {
 
         DrawText(startText, SCREEN_WIDTH/2 - sWidth/2, 560, 30, startColor);
 
-        // --- 5. Help Button Look ---
+        // . 5. Help Button Look .
         Rectangle helpRect = { SCREEN_WIDTH/2.0f - 120, 630, 240, 40 };
         DrawRectangleRounded(helpRect, 0.5f, 6, Fade(SKYBLUE, 0.2f));
         DrawRectangleRoundedLines(helpRect, 0.5f, 6, SKYBLUE);
@@ -575,7 +575,7 @@ void DrawUI() {
     }
 }
 
-// --- Main Loop ---
+// Main Loop 
 int main() {
     // Seed standard rand() for map generation
     srand(static_cast<unsigned int>(time(0)));
